@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon href="../docs/Img/webflare-favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webflare Admin Panel</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-100">
+    <div id="app" class="min-h-screen">
+        <!-- Loading State -->
+        <div id="loading" class="fixed inset-0 bg-white flex items-center justify-center z-50">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+                <p class="mt-4 text-gray-600">Loading...</p>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div id="content"></div>
+    </div>
+    <!-- AWS SDK -->
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1049.0.min.js"></script>
+    
+    <!-- Environment Configuration -->
+    <script>
+        // Load environment variables (in a real app, these would be set by your build process)
+        // For development, you can set them here or use a .env file with a build tool like webpack/vite
+        window.env = {
+            // AWS Configuration
+            AWS_REGION: 'us-east-2',
+            AWS_ACCESS_KEY_ID: 'AKIAYQCWHFTBMCNC2I3T',
+            AWS_SECRET_ACCESS_KEY: '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',
+            AWS_S3_BUCKET: 'webflare-admin-contracts',
+            
+            // Firebase Configuration
+            FIREBASE_API_KEY: 'AIzaSyB0e1Mn2vEmvsNYiG-iVrnwaGIwy_i7U0Q',
+            FIREBASE_AUTH_DOMAIN: 'webflare-admin-panel.firebaseapp.com',
+            FIREBASE_PROJECT_ID: 'webflare-admin-panel',
+            FIREBASE_STORAGE_BUCKET: 'webflare-admin-panel.firebasestorage.app',
+            FIREBASE_MESSAGING_SENDER_ID: '741286316758',
+            FIREBASE_APP_ID: '1:741286316758:web:a02627f4873d195f049777',
+            
+            // Environment
+            NODE_ENV: 'development'
+        };
+    </script>
+    
+    <!-- Firebase Config -->
+    <script src="firebase-config.js"></script>
+    
+    <!-- AWS Config -->
+    <script src="aws-config.js"></script>
+    
+    <!-- Other Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="main.js"></script>
+    <script src="projects.js"></script>
+    <script src="contracts.js"></script>
+    <script src="tasks.js" defer></script>
+</body>
+</html>
