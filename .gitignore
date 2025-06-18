@@ -1,0 +1,32 @@
+
+# Environment
+.env
+.env.local
+.env.development
+.env.production
+aws-credentials.json
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build files
+build/
+dist/
+.next/
+out/
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
