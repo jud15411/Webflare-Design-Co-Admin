@@ -11,17 +11,17 @@ const envConfig = typeof process !== 'undefined' && process.env ? process.env : 
 const defaultConfig = {
     // AWS Configuration
     AWS_REGION: envConfig.AWS_REGION || 'us-east-2',
-    AWS_ACCESS_KEY_ID: envConfig.AWS_ACCESS_KEY_ID || '',
-    AWS_SECRET_ACCESS_KEY: envConfig.AWS_SECRET_ACCESS_KEY || '',
+    AWS_ACCESS_KEY_ID: envConfig.AWS_ACCESS_KEY_ID ,
+    AWS_SECRET_ACCESS_KEY: envConfig.AWS_SECRET_ACCESS_KEY ,
     AWS_S3_BUCKET: envConfig.AWS_S3_BUCKET || 'webflare-admin-contracts',
     
     // Firebase Configuration
-    FIREBASE_API_KEY: envConfig.FIREBASE_API_KEY || '',
-    FIREBASE_AUTH_DOMAIN: envConfig.FIREBASE_AUTH_DOMAIN || '',
-    FIREBASE_PROJECT_ID: envConfig.FIREBASE_PROJECT_ID || '',
-    FIREBASE_STORAGE_BUCKET: envConfig.FIREBASE_STORAGE_BUCKET || '',
-    FIREBASE_MESSAGING_SENDER_ID: envConfig.FIREBASE_MESSAGING_SENDER_ID || '',
-    FIREBASE_APP_ID: envConfig.FIREBASE_APP_ID || '',
+    FIREBASE_API_KEY: envConfig.VITE_FIREBASE_API_KEY ,
+    FIREBASE_AUTH_DOMAIN: envConfig.VITE_FIREBASE_AUTH_DOMAIN ,
+    FIREBASE_PROJECT_ID: envConfig.VITE_FIREBASE_PROJECT_ID ,
+    FIREBASE_STORAGE_BUCKET: envConfig.VITE_FIREBASE_STORAGE_BUCKET ,
+    FIREBASE_MESSAGING_SENDER_ID: envConfig.VITE_FIREBASE_MESSAGING_SENDER_ID ,
+    FIREBASE_APP_ID: envConfig.VITE_FIREBASE_APP_ID ,
     
     // Environment
     NODE_ENV: envConfig.NODE_ENV || 'development'
