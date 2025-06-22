@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Webflare Design Co.</title>
+    <link rel="icon" type="image/png" href="admin-logo.png">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8fafc;
+        }
+        .login-container {
+            min-height: 100vh;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 28rem;
+            margin: 0 auto;
+        }
+        .input-field:focus {
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+            outline: none;
+        }
+        .btn-primary {
+            transition: all 0.2s ease-in-out;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .error-message {
+            transition: all 0.3s ease-in-out;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        .error-message.show {
+            max-height: 100px;
+            opacity: 1;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased text-gray-800">
+    <div id="login-container" class="login-container flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+        <!-- Login form will be rendered here by login.js -->
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+            <p class="mt-4 text-gray-600">Loading login system...</p>
+        </div>
+    </div>
+
+    <script>
+    // Add error handling for script loading
+    function handleScriptError(script, error) {
+        console.error('Script loading error:', script, error);
+        const container = document.getElementById('login-container');
+        if (container) {
+            container.innerHTML = `
+                <div class="rounded-md bg-red-50 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">Error loading application</h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <p>Failed to load required resources. Please check your connection and refresh the page.</p>
+                                <p class="mt-2">Error details: ${error ? error.message : 'Unknown error'}</p>
+                            </div>
+                            <div class="mt-4">
+                                <button type="button" onclick="window.location.reload()" class="rounded-md bg-red-50 px-2 py-1.5 text-sm font-medium text-red-800 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-red-50">
+                                    Refresh page
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+        }
+    }
+
+    // Function to load scripts with error handling
+    function loadScript(src, isModule = false) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            if (isModule) script.type = 'module';
+            script.onload = () => {
+                console.log(`Loaded script: ${src}`);
+                resolve();
+            };
+            script.onerror = (error) => {
+                console.error(`Error loading script: ${src}`, error);
+                handleScriptError(src, error);
+                reject(error);
+            };
+            document.head.appendChild(script);
+        });
+    }
+
+    // Load scripts in order
+    async function initializeApp() {
+        try {
+            console.log('Starting application initialization...');
+            
+            // Load Firebase SDKs
+            await loadScript('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
+            await loadScript('https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js');
+            await loadScript('https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js');
+            
+            // Load config
+            await loadScript('config.js');
+            
+            // Load login module
+            await loadScript('login.js');
+
+            // Initialize the login module
+            if (typeof Login !== 'undefined') {
+                console.log('Initializing login module...');
+                Login.init();
+            } else {
+                throw new Error('Login module not found');
+            }
+        } catch (error) {
+            console.error('Error initializing application:', error);
+            handleScriptError('Application Initialization', error);
+        }
+    }
+
+    // Start the initialization when the DOM is fully loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    } else {
+        initializeApp();
+    }
+    </script>
+    
+    <!-- Script initialization is now handled by the script above -->
+</body>
+</html>

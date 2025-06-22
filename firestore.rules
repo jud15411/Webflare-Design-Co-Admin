@@ -1,0 +1,234 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===========================================
+    // HELPER FUNCTIONS
+    // ===========================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user is admin (via token claim)
+    function isAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.admin == true;
+    }
+
+    // Check if user is accessing their own data
+    function isUser(userId) {
+      return isAuthenticated() && 
+             request.auth.uid == userId;
+    }
+    
+    // Check if user is a developer
+    function isDeveloper() {
+      return isAuthenticated() && 
+             (request.auth.token.developer == true || isAdmin());
+    }
+    
+    // Data validation functions
+    function isValidUserData() {
+      return request.resource.data.keys().hasAll(['email', 'name']) &&
+             request.resource.data.email is string &&
+             request.resource.data.name is string;
+    }
+
+    // ===========================================
+    // AUTHENTICATION
+    // ===========================================
+    match /__{path=**}/** {
+      allow read, write: if false;
+    }
+
+    // ===========================================
+    // ADMIN MANAGEMENT
+    // ===========================================
+    match /admins/{userId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ===========================================
+    // USERS COLLECTION
+    // ===========================================
+    match /users/{userId} {
+      // Allow read if admin or the user themselves
+      allow read: if isAuthenticated() && 
+                 (isAdmin() || isUser(userId));
+      
+      // Allow update if admin or the user themselves with valid data
+      allow update: if isAuthenticated() && 
+                  (isAdmin() || (isUser(userId) && isValidUserData()));
+      
+      // Only admins can create/delete users with valid data
+      allow create: if isAdmin() && isValidUserData();
+      allow delete: if isAdmin();
+    }
+
+    // ===========================================
+    // DEVELOPERS COLLECTION
+    // ===========================================
+    match /developers/{developerId} {
+      // Allow read if admin or the developer themselves
+      allow read: if isAuthenticated() && 
+                 (isAdmin() || isUser(developerId));
+      
+      // Only admins can modify developers
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // ===========================================
+    // DEFAULT DENY RULE
+    // ===========================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    // ===========================================
+    // HELPER FUNCTIONS
+    // ===========================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user is admin (via token claim or email verified)
+    function isAdmin() {
+      return isAuthenticated() && 
+             (request.auth.token.admin == true || 
+              request.auth.token.email_verified == true);
+    }
+
+    // Check if user is accessing their own data
+    function isUser(userId) {
+      return isAuthenticated() && 
+             request.auth.uid == userId;
+    }
+    
+    // Check if user is a developer
+    function isDeveloper() {
+      return isAuthenticated() && 
+             (request.auth.token.developer == true || isAdmin());
+    }
+    
+    // Check if developer is active
+    function isActiveDeveloper() {
+      if (!isAuthenticated()) return false;
+      if (isAdmin()) return true;
+      
+      // First check by UID
+      let developerDoc = get(/databases/$(database)/documents/developers/$(request.auth.uid));
+      
+      // If not found by UID, check by email (requires an index)
+      if (!developerDoc.exists) {
+        // This requires a composite index on developers collection with email field
+        let developerDocs = get(/databases/$(database)/documents/developers/
+          .where('email', '==', request.auth.token.email)
+        );
+        
+        // If we found a developer with this email
+        if (developerDocs.size() > 0) {
+          developerDoc = developerDocs.documents[0];
+        }
+      }
+      
+      // If still no developer doc, not an active developer
+      if (!developerDoc.exists) return false;
+      
+      // Check if developer is active
+      return developerDoc.data.status != 'inactive';
+    }
+
+    // ===========================================
+    // ADMIN MANAGEMENT
+    // ===========================================
+    match /admins/{userId} {
+      // Only admins can read and write admin data
+      allow read, write: if isAdmin();
+    }
+
+    // ===========================================
+    // USERS COLLECTION
+    // ===========================================
+    match /users/{userId} {
+      // Allow read if admin or the user themselves
+      allow read: if isAuthenticated() && 
+                 (isAdmin() || isUser(userId));
+      
+      // Allow update if admin or the user themselves
+      allow update: if isAuthenticated() && 
+                  (isAdmin() || isUser(userId));
+      
+      // Only admins can create/delete users
+      allow create, delete: if isAdmin();
+    }
+
+    // ===========================================
+    // DEVELOPERS COLLECTION
+    // ===========================================
+    match /developers/{developerId} {
+      // Allow read if admin or the developer themselves (if active)
+      allow read: if isAuthenticated() && 
+                 (isAdmin() || (isUser(developerId) && isActiveDeveloper()));
+      
+      // Allow create/update if admin
+      allow create, update: if isAdmin();
+      
+      // Allow delete only by admin and not self
+      allow delete: if isAdmin() && !isUser(developerId);
+    }
+    
+    // ===========================================
+    // USER PROFILES
+    // ===========================================
+    match /user_profiles/{userId} {
+      // Allow read if admin or the user themselves
+      allow read: if isAuthenticated() && 
+                 (isAdmin() || isUser(userId));
+      
+      // Allow update if admin or the user themselves
+      allow update: if isAuthenticated() && 
+                  (isAdmin() || isUser(userId));
+      
+      // Only admins can create/delete user profiles
+      allow create, delete: if isAdmin();
+    }
+    
+    // ===========================================
+    // PASSWORD RESET TOKENS
+    // ===========================================
+    match /password_reset_tokens/{tokenId} {
+      // Allow admins to create tokens
+      allow create: if isAdmin();
+      
+      // Allow users to read their own tokens
+      allow read: if isAuthenticated() && 
+                 (isAdmin() || request.auth.uid == resource.data.userId);
+      
+      // Allow token deletion after use
+      allow delete: if isAuthenticated() && 
+                  (isAdmin() || request.auth.uid == resource.data.userId);
+    }
+    
+    // ===========================================
+    // LEGACY DEVELOPERS COLLECTION
+    // ===========================================
+    match /developers_legacy/{developerId} {
+      // Allow read if admin or the developer themselves
+      allow read: if isAuthenticated() && 
+                 (isAdmin() || isUser(developerId));
+      
+      // Allow update if admin or the developer themselves
+      allow update: if isAuthenticated() && 
+                  (isAdmin() || isUser(developerId));
+      
+      // Only admins can create/delete developers
+      allow create, delete: if isAdmin();
+    }
+    
+    // ===========================================
+    // DEFAULT DENY RULE
+    // ===========================================
+    match /{document=**} {
+      // Deny all other access by default
+      allow read, write: if false;
+    }
+  }
+}

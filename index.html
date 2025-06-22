@@ -1,70 +1,1197 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon href="../docs/Img/webflare-favicon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.gstatic.com; script-src 'self' 'unsafe-inline' https://*.firebaseio.com https://*.googleapis.com https://*.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com; frame-ancestors 'none';">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta name="theme-color" content="#ffffff">
     <title>Webflare Admin Panel</title>
+    <link rel="icon" type="image/png" href="admin-logo.png" sizes="32x32">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"></noscript>
+    <script>
+      // Check authentication and redirect if needed
+      document.addEventListener('DOMContentLoaded', function() {
+        // Check if we have a user in sessionStorage (set by login page)
+        const user = JSON.parse(sessionStorage.getItem('user'));
+        
+        if (!user) {
+          // No user session, redirect to login
+          window.location.href = 'login.html';
+        } else if (user.role === 'admin') {
+          // Admin user, stay on this page
+          return;
+        } else if (user.role === 'developer') {
+          // Developer user, redirect to developer dashboard
+          window.location.href = 'developer-dashboard.html';
+        } else {
+          // Unknown role, redirect to login
+          window.location.href = 'login.html';
+        }
+      });
+    </script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <!-- Tailwind CSS -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+    
+    <!-- UI Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Custom CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
+    
+    <!-- Custom Alert Styles -->
+    <style>
+        .custom-alert {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 1000;
+            max-width: 24rem;
+            width: 100%;
+            transform: translateX(120%);
+            transition: transform 0.3s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border-radius: 0.375rem;
+            overflow: hidden;
+        }
+        .custom-alert.show {
+            transform: translateX(0);
+        }
+        .custom-alert-content {
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .custom-alert-close {
+            margin-left: auto;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .custom-alert-close:hover {
+            opacity: 1;
+        }
+        .custom-alert-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+    </style>
+    
+    <style>
+        body {
+            background-color: #f8fafc;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
-    <div id="app" class="min-h-screen">
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div id="app" class="w-full">
         <!-- Loading State -->
-        <div id="loading" class="fixed inset-0 bg-white flex items-center justify-center z-50">
+        <div id="loading" class="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
             <div class="text-center">
-                <div class="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-                <p class="mt-4 text-gray-600">Loading...</p>
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p class="mt-4 text-gray-600">Checking authentication...</p>
             </div>
         </div>
         
-        <!-- Main Content -->
-        <div id="content"></div>
+        <!-- Login Form Container -->
+        <div id="login-container" class="login-container">
+            <!-- Login form will be loaded here by login.js -->
+        </div>
+        
+        <!-- Admin Panel (initially hidden) -->
+        <div id="admin-panel" class="hidden">
+            <!-- Top Navigation -->
+            <header class="bg-white shadow-sm">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                    <h1 class="text-2xl font-semibold text-gray-900">Dashboard</h1>
+                    <div class="flex items-center space-x-4">
+                        <button id="refreshDashboard" class="p-2 text-gray-500 hover:text-gray-700 focus:outline-none" title="Refresh">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                        <button id="logout-button" class="p-2 text-gray-500 hover:text-red-600 focus:outline-none" title="Logout">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main content area -->
+            <main id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <!-- Stats -->
+                <div class="grid grid-cols-1 gap-5 mt-6 sm:grid-cols-2 lg:grid-cols-4">
+                    <!-- Total Developers -->
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
+                                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0111.317-3.317M15 21v-3a6 6 0 00-12 0v3m0 0h12v3H3v-3z" />
+                                    </svg>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 truncate">
+                                            Total Developers
+                                        </dt>
+                                        <dd class="flex items-baseline">
+                                            <div class="text-2xl font-semibold text-gray-900" id="totalDevelopers">-</div>
+                                            <div class="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                                                <span class="sr-only">Increased by</span>
+                                                <span id="developerChange">-</span>
+                                            </div>
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-5 py-3">
+                            <div class="text-sm">
+                                <a href="developers.html" class="font-medium text-blue-600 hover:text-blue-500">
+                                    View all
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active Projects -->
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
+                                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                    </svg>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 truncate">
+                                            Active Projects
+                                        </dt>
+                                        <dd class="flex items-baseline">
+                                            <div class="text-2xl font-semibold text-gray-900" id="activeProjects">-</div>
+                                            <div class="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                                                <span class="sr-only">Increased by</span>
+                                                <span id="projectsChange">-</span>
+                                            </div>
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-5 py-3">
+                            <div class="text-sm">
+                                <a href="projects.html" class="font-medium text-blue-600 hover:text-blue-500">
+                                    View all
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Invoices -->
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3">
+                                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+                                    </svg>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 truncate">
+                                            Pending Invoices
+                                        </dt>
+                                        <dd class="flex items-baseline">
+                                            <div class="text-2xl font-semibold text-gray-900" id="pendingInvoices">-</div>
+                                            <div class="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                                                <span class="sr-only">Decreased by</span>
+                                                <span id="invoicesChange">-</span>
+                                            </div>
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-5 py-3">
+                            <div class="text-sm">
+                                <a href="invoices.html?status=pending" class="font-medium text-blue-600 hover:text-blue-500">
+                                    View all
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Revenue -->
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 bg-purple-500 rounded-md p-3">
+                                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 truncate">
+                                            Total Revenue
+                                        </dt>
+                                        <dd class="flex items-baseline">
+                                            <div class="text-2xl font-semibold text-gray-900" id="totalRevenue">$0.00</div>
+                                            <div class="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                                                <span class="sr-only">Increased by</span>
+                                                <span id="revenueChange">0%</span>
+                                            </div>
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-5 py-3">
+                            <div class="text-sm">
+                                <a href="reports.html" class="font-medium text-blue-600 hover:text-blue-500">
+                                    View reports
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="mt-8">
+                    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                        <!-- Recent Invoices -->
+                        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                            <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                                <div class="flex justify-between items-center">
+                                    <h3 class="text-lg leading-6 font-medium text-gray-900">Recent Invoices</h3>
+                                    <button id="createInvoiceBtn" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                        <svg class="-ml-0.5 mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                        </svg>
+                                        New Invoice
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="bg-white overflow-hidden">
+                                <div id="invoicesContainer" class="flow-root">
+                                    <!-- Invoices will be loaded here by admin-panel.js -->
+                                    <div class="text-center py-12">
+                                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                        <p class="mt-2 text-gray-600">Loading invoices...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Developers -->
+                        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                            <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                                <div class="flex justify-between items-center">
+                                    <h3 class="text-lg leading-6 font-medium text-gray-900">Recent Developers</h3>
+                                    <button id="addDeveloperBtn" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                        <svg class="-ml-0.5 mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                        </svg>
+                                        Add Developer
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="bg-white overflow-hidden">
+                                <div id="developersContainer" class="flow-root">
+                                    <!-- Developers will be loaded here by admin-panel.js -->
+                                    <div class="text-center py-12">
+                                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                        <p class="mt-2 text-gray-600">Loading developers...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="mt-8">
+                    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900">Recent Activity</h3>
+                            <p class="mt-1 max-w-2xl text-sm text-gray-500">Latest actions across the platform</p>
+                        </div>
+                        <div class="bg-white overflow-hidden">
+                            <div id="activityContainer" class="divide-y divide-gray-200">
+                                <!-- Activity items will be loaded here -->
+                                <div class="px-4 py-4 sm:px-6">
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-sm font-medium text-blue-600 truncate">
+                                            System initialized
+                                        </p>
+                                        <div class="ml-2 flex-shrink-0 flex">
+                                            <p class="text-xs text-gray-500">Just now</p>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <p class="text-sm text-gray-500">
+                                            Loading recent activity...
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Loading overlay -->
+            <div id="loading" class="fixed inset-0 bg-white bg-opacity-75 z-50 flex items-center justify-center hidden">
+                <div class="text-center">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                    <p class="mt-4 text-gray-600">Loading...</p>
+                </div>
+            </div>
+
+            <!-- Notification container -->
+            <div id="notification-container" class="fixed top-4 right-4 z-50 max-w-sm space-y-2">
+                <!-- Notifications will be inserted here -->
+            </div>
+            
+            <!-- Error message container (legacy, will be removed in future) -->
+            <div id="error-container" class="fixed top-4 right-4 z-50 max-w-sm hidden">
+                <!-- Error messages will be inserted here -->
+            </div>
+        </div>
     </div>
-    <!-- AWS SDK -->
-    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1049.0.min.js"></script>
     
-    <!-- Environment Configuration -->
+    <!-- Custom Confirmation Modal -->
+    <div id="confirmationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold mb-4" id="modalTitle">Confirm Deletion</h3>
+            <p id="modalMessage" class="mb-6">Are you sure you want to delete this invoice? This action cannot be undone.</p>
+            <div class="flex justify-end space-x-3">
+                <button id="modalCancelBtn" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button id="modalConfirmBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- Application Initialization -->
     <script>
-        // Load environment variables (in a real app, these would be set by your build process)
-        // For development, you can set them here or use a .env file with a build tool like webpack/vite
-        window.env = {
-            // AWS Configuration
-            AWS_REGION: 'us-east-2',
-            AWS_ACCESS_KEY_ID: 'AKIAYQCWHFTBMCNC2I3T',
-            AWS_SECRET_ACCESS_KEY: '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',
-            AWS_S3_BUCKET: 'webflare-admin-contracts',
+        // Initialize global config object with enhanced logging
+        console.log('Initializing application...');
+        window.config = window.config || {};
+        window.env = window.env || {};
+        
+        // Debug: Log initial state
+        console.log('Initial window.config:', window.config);
+        console.log('Initial window.env:', window.env);
+        console.log('Firebase available:', typeof firebase !== 'undefined' ? 'Yes' : 'No');
+        
+        // Load script helper function
+        function loadScript(src, isModule = false) {
+            return new Promise((resolve, reject) => {
+                // Check if script is already loaded
+                if (document.querySelector(`script[src="${src}"]`)) {
+                    console.log(`Script already loaded: ${src}`);
+                    resolve();
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = src;
+                if (isModule) {
+                    script.type = 'module';
+                }
+                script.onload = () => {
+                    console.log(`✅ Successfully loaded: ${src}`);
+                    resolve();
+                };
+                script.onerror = (error) => {
+                    console.error(`❌ Failed to load script: ${src}`, error);
+                    reject(new Error(`Failed to load script: ${src}`));
+                };
+                document.head.appendChild(script);
+            });
+        }
+        
+        // Function to show error message
+        function showError(message) {
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl) {
+                loadingEl.innerHTML = `
+                    <div class="text-center p-6 bg-white rounded-lg shadow-md">
+                        <h2 class="text-xl font-bold text-red-600 mb-2">Error</h2>
+                        <p class="text-gray-600 mb-4">${message}</p>
+                        <button onclick="window.location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Try Again
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', async function() {
+            const loadingEl = document.getElementById('loading');
+            const loginContainer = document.getElementById('login-container');
+            const adminPanel = document.getElementById('admin-panel');
             
-            // Firebase Configuration
-            FIREBASE_API_KEY: 'AIzaSyB0e1Mn2vEmvsNYiG-iVrnwaGIwy_i7U0Q',
-            FIREBASE_AUTH_DOMAIN: 'webflare-admin-panel.firebaseapp.com',
-            FIREBASE_PROJECT_ID: 'webflare-admin-panel',
-            FIREBASE_STORAGE_BUCKET: 'webflare-admin-panel.firebasestorage.app',
-            FIREBASE_MESSAGING_SENDER_ID: '741286316758',
-            FIREBASE_APP_ID: '1:741286316758:web:a02627f4873d195f049777',
-            
-            // Environment
-            NODE_ENV: 'development'
-        };
+            try {
+                // Load config first
+                await loadScript('config.js');
+                
+                // Load Firebase config and initialize
+                await loadScript('firebase-config.js');
+                
+                // Initialize Firebase if not already initialized
+                if (typeof firebase !== 'undefined') {
+                    if (!firebase.apps.length) {
+                        try {
+                            firebase.initializeApp(window.firebaseConfig);
+                            console.log('Firebase initialized successfully');
+                        } catch (initError) {
+                            throw new Error('Failed to initialize Firebase: ' + initError.message);
+                        }
+                    }
+                    
+                    // Check auth state
+                    firebase.auth().onAuthStateChanged(async (user) => {
+                        console.log('Auth state changed, user:', user ? user.uid : 'signed out');
+                        
+                        if (user) {
+                            console.log('User is signed in:', user.uid);
+                            
+                            try {
+                                // Force token refresh to get latest claims
+                                await user.getIdToken(true);
+                                
+                                // Show loading state
+                                if (loadingEl) {
+                                    loadingEl.style.display = 'flex';
+                                    loadingEl.innerHTML = `
+                                        <div class="text-center">
+                                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                                            <p class="mt-4 text-gray-600">Loading admin panel...</p>
+                                        </div>
+                                    `;
+                                }
+
+                                // Load main.js if not already loaded
+                                if (typeof window.initApp === 'undefined') {
+                                    console.log('Loading main.js...');
+                                    try {
+                                        await loadScript('main.js');
+                                        console.log('main.js loaded successfully');
+                                    } catch (error) {
+                                        console.error('Failed to load main.js:', error);
+                                        throw error;
+                                    }
+                                }
+                                
+                                // Initialize the app if the function exists
+                                if (typeof window.initApp === 'function') {
+                                    console.log('Initializing admin panel...');
+                                    try {
+                                        await window.initApp();
+                                        console.log('Admin panel initialized successfully');
+                                    } catch (error) {
+                                        console.error('Failed to initialize admin panel:', error);
+                                        throw error;
+                                    }
+                                    
+                                    // Hide login and show admin panel after successful initialization
+                                    if (loginContainer) loginContainer.classList.add('hidden');
+                                    if (adminPanel) adminPanel.classList.remove('hidden');
+                                    if (loadingEl) loadingEl.style.display = 'none';
+                                    
+                                    // Force a hard refresh of the page to ensure clean state
+                                    if (window.performance) {
+                                        console.log('Page reloaded in the last 5 seconds?', performance.getEntriesByType('navigation')[0]?.type === 'reload');
+                                        if (performance.getEntriesByType('navigation')[0]?.type !== 'reload') {
+                                            console.log('Forcing page reload for clean state...');
+                                            window.location.reload();
+                                        }
+                                    }
+                                } else {
+                                    throw new Error('Failed to initialize admin panel: initApp function not found');
+                                }
+                                
+                            } catch (error) {
+                                console.error('Error loading dashboard:', error);
+                                showError('Failed to load admin panel: ' + (error.message || 'Unknown error'));
+                                
+                                // Show login form as fallback
+                                if (loginContainer) loginContainer.classList.remove('hidden');
+                                if (adminPanel) adminPanel.classList.add('hidden');
+                                if (loadingEl) loadingEl.style.display = 'none';
+                            }
+                        } else {
+                            console.log('No user is signed in, showing login form');
+                            // Show login form and hide admin panel
+                            if (loginContainer) loginContainer.classList.remove('hidden');
+                            if (adminPanel) adminPanel.classList.add('hidden');
+                            
+                            // Load login module
+                            try {
+                                await loadScript('login.js');
+                                if (typeof Login !== 'undefined') {
+                                    Login.init();
+                                }
+                            } catch (loginError) {
+                                showError('Failed to load login form: ' + loginError.message);
+                                console.error('Error loading login:', loginError);
+                            }
+                        }
+                        
+                        // Hide loading
+                        if (loadingEl) loadingEl.style.display = 'none';
+                    });
+                } else {
+                    throw new Error('Firebase SDK not loaded');
+                }
+                
+                // Add logout functionality
+                document.addEventListener('click', function(e) {
+                    if (e.target && e.target.id === 'logoutBtn') {
+                        firebase.auth().signOut().then(() => {
+                            window.location.href = '/index.html';
+                        }).catch((error) => {
+                            console.error('Error signing out:', error);
+                        });
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Failed to initialize application:', error);
+                const loadingEl = document.getElementById('loading');
+                if (loadingEl) {
+                    loadingEl.innerHTML = `
+                        <div class="text-center p-6 bg-white rounded-lg shadow-md">
+                            <h2 class="text-xl font-bold text-red-600 mb-2">Error Loading Application</h2>
+                            <p class="text-gray-600 mb-4">${error.message || 'An unexpected error occurred'}</p>
+                            <div class="flex justify-center space-x-4">
+                                <button onclick="window.location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                                    Retry
+                                </button>
+                                <button onclick="window.location.href='login.html'" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 transition-colors">
+                                    Go to Login
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Fallback if loading element is not found
+                    document.body.innerHTML = `
+                        <div class="min-h-screen flex items-center justify-center p-4">
+                            <div class="text-center">
+                                <h1 class="text-2xl font-bold text-red-600 mb-4">Application Error</h1>
+                                <p class="mb-6">${error.message || 'Failed to load the application'}</p>
+                                <button onclick="window.location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                    Reload Page
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        });
     </script>
     
-    <!-- Firebase Config -->
-    <script src="firebase-config.js"></script>
-    
-    <!-- AWS Config -->
-    <script src="aws-config.js"></script>
-    
-    <!-- Other Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script src="main.js"></script>
+    <!-- Project Scripts -->
+    <!-- Password Change Handler (loaded after Firebase initialization) -->
+    <script src="js/password-change.js"></script>
+    <script>
+        console.log('Loading projects.js...');
+    </script>
     <script src="projects.js"></script>
-    <script src="contracts.js"></script>
-    <script src="tasks.js" defer></script>
+    <script>
+        console.log('projects.js loaded, window.Projects:', window.Projects);
+        console.log('Loading tasks.js...');
+    </script>
+    <script src="tasks.js"></script>
+    <script>
+        console.log('tasks.js loaded, window.Tasks:', window.Tasks);
+        console.log('Loading invoices.js...');
+    </script>
+    <script src="invoices.js"></script>
+    <script>
+        console.log('invoices.js loaded, window.Invoices:', window.Invoices);
+        console.log('Loading contracts.js...');
+        
+        // Add error handler for contracts.js
+        function handleContractsLoadError(error) {
+            console.error('Error loading contracts.js:', error);
+            // Create a global Contracts object with error state
+            window.Contracts = {
+                __error: true,
+                loadError: error,
+                init: () => Promise.reject(error),
+                loadContractsSection: () => Promise.reject(error)
+            };
+        }
+        
+        // Create script element with error handling
+        const script = document.createElement('script');
+        script.src = 'contracts.js';
+        script.onerror = (error) => handleContractsLoadError(new Error('Failed to load contracts.js'));
+        script.onload = () => {
+            console.log('contracts.js loaded, window.Contracts:', window.Contracts);
+            if (!window.Contracts) {
+                handleContractsLoadError(new Error('window.Contracts is not defined after loading contracts.js'));
+            }
+        };
+        document.head.appendChild(script);
+    </script>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-confirm-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white">
+            <div class="flex flex-col items-center">
+                <!-- Warning Icon -->
+                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <i class="fas fa-exclamation text-red-600"></i>
+                </div>
+                
+                <!-- Modal Content -->
+                <div class="mt-3 text-center">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="delete-confirm-title">Delete Invoice</h3>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-500" id="delete-confirm-message">
+                            Are you sure you want to delete this invoice? This action cannot be undone.
+                        </p>
+VYH45SDX UZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ5XHUJTE3 DYUEUE8HDGEJ-5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555BEP00DNI8888888888888888888888888888888888888888888888888                    </div>
+                </div>
+                
+                <!-- Buttons -->
+                <div class="mt-5 sm:mt-6 flex w-full justify-between space-x-3">
+                    <button type="button" id="delete-cancel-btn"
+                        class="w-1/2 inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                        Cancel
+                    </button>
+                    <button type="button" id="delete-confirm-btn"
+                        class="w-1/2 inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Second Confirmation Modal -->
+    <div id="second-confirm-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white">
+            <div class="flex flex-col items-center">
+                <!-- Warning Icon -->
+                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <i class="fas fa-exclamation-triangle text-red-600"></i>
+                </div>
+                
+                <!-- Modal Content -->
+                <div class="mt-3 text-center">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Are you absolutely sure?</h3>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-500">
+                            This will permanently delete the invoice. This action cannot be undone.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Buttons -->
+                <div class="mt-5 sm:mt-6 flex w-full justify-between space-x-3">
+                    <button type="button" id="second-cancel-btn"
+                        class="w-1/2 inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                        No, keep it
+                    </button>
+                    <button type="button" id="second-confirm-btn"
+                        class="w-1/2 inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm">
+                        Yes, delete it
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Invoice Modal -->
+    <div id="new-invoice-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-2/3 xl:w-1/2 shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center pb-3">
+                <h3 class="text-xl font-semibold text-gray-800">Create New Invoice</h3>
+                <button onclick="window.Invoices.hideNewInvoiceModal()" class="text-gray-400 hover:text-gray-500">
+                    <span class="sr-only">Close</span>
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <div class="mt-4">
+                <form id="new-invoice-form" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="client-name" class="block text-sm font-medium text-gray-700">Client Name</label>
+                            <input type="text" id="client-name" name="clientName" required
+                                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="client-email" class="block text-sm font-medium text-gray-700">Client Email</label>
+                            <input type="email" id="client-email" name="clientEmail"
+                                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="client-address" class="block text-sm font-medium text-gray-700">Client Address</label>
+                            <textarea id="client-address" name="clientAddress" rows="2"
+                                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+                        <div>
+                            <label for="invoice-date" class="block text-sm font-medium text-gray-700">Invoice Date</label>
+                            <input type="date" id="invoice-date" name="invoiceDate" required
+                                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="due-date" class="block text-sm font-medium text-gray-700">Due Date</label>
+                            <input type="date" id="due-date" name="dueDate" required
+                                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                    
+                    <!-- Invoice Items -->
+                    <div class="mt-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="text-lg font-medium text-gray-900">Items</h4>
+                        </div>
+                        
+                        <div id="invoice-items-container" class="space-y-4">
+                            <!-- Items will be added here dynamically -->
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button type="button" id="add-invoice-item"
+                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                <i class="fas fa-plus mr-2"></i> Add Item
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Totals -->
+                    <div class="mt-8 bg-gray-50 p-4 rounded-lg">
+                        <div class="flex justify-between py-2 text-sm font-medium text-gray-700">
+                            <span>Subtotal</span>
+                            <span id="invoice-subtotal">$0.00</span>
+                        </div>
+                        <div class="flex justify-between py-2 text-sm font-medium text-gray-700">
+                            <span>Tax (10%)</span>
+                            <span id="invoice-tax">$0.00</span>
+                        </div>
+                        <div class="flex justify-between py-2 text-lg font-bold text-gray-900 border-t border-gray-200 mt-2 pt-3">
+                            <span>Total</span>
+                            <span id="invoice-total">$0.00</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Notes -->
+                    <div class="mt-6">
+                        <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
+                        <textarea id="notes" name="notes" rows="3"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Any additional notes..."></textarea>
+                    </div>
+                    
+                    <!-- Form Actions -->
+                    <div class="mt-6 flex justify-end space-x-3">
+                        <button type="button" onclick="window.Invoices.hideNewInvoiceModal()"
+                            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                            class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Save Invoice
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug Script -->
+    <script>
+    // Debug helper function
+    function logModuleStatus() {
+        if (typeof console !== 'undefined') {
+            console.group('Module Status');
+            console.log('initApp available:', typeof window.initApp === 'function' ? '✅' : '❌');
+            console.log('firebase:', typeof firebase !== 'undefined' ? '✅' : '❌');
+            if (typeof firebase !== 'undefined') {
+                console.log('firebase.app:', firebase.apps.length > 0 ? '✅' : '❌');
+                console.log('firebase.auth:', typeof firebase.auth === 'object' ? '✅' : '❌');
+                console.log('firebase.firestore:', typeof firebase.firestore === 'object' ? '✅' : '❌');
+            }
+            console.groupEnd();
+        }
+    }
+    
+    // Log initial status
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM fully loaded');
+        logModuleStatus();
+    });
+    </script>
+    
+    <!-- Upload Contract Modal -->
+    <div id="upload-contract-modal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="upload-modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+
+            <!-- Modal panel -->
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <i class="fas fa-file-contract text-blue-600"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="upload-modal-title">
+                                Upload New Contract
+                            </h3>
+                            <div class="mt-4">
+                                <form id="upload-contract-form" class="space-y-4">
+                                    <!-- Contract Title -->
+                                    <div>
+                                        <label for="contract-title" class="block text-sm font-medium text-gray-700">Contract Title *</label>
+                                        <input type="text" id="contract-title" name="title" required
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            placeholder="e.g., Web Development Agreement">
+                                    </div>
+
+                                    <!-- Client Information -->
+                                    <div class="grid grid-cols-6 gap-6">
+                                        <!-- Client Name -->
+                                        <div class="col-span-6 sm:col-span-3">
+                                            <label for="client-name" class="block text-sm font-medium text-gray-700">Client Name <span class="text-red-500">*</span></label>
+                                            <input type="text" id="client-name" name="clientName" required 
+                                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                                   placeholder="John Doe">
+                                        </div>
+                                        
+                                        <!-- Client Email -->
+                                        <div class="col-span-6 sm:col-span-3">
+                                            <label for="client-email" class="block text-sm font-medium text-gray-700">Client Email <span class="text-red-500">*</span></label>
+                                            <input type="email" id="client-email" name="clientEmail" required 
+                                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                                   placeholder="john@example.com">
+                                        </div>
+                                    </div>
+
+                                    <!-- Contract Status -->
+                                    <div>
+                                        <label for="contract-status" class="block text-sm font-medium text-gray-700">Status *</label>
+                                        <select id="contract-status" name="status" required
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                            <option value="draft">Draft</option>
+                                            <option value="pending">Pending</option>
+                                            <option value="active">Active</option>
+                                            <option value="signed">Signed</option>
+                                            <option value="expired">Expired</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Contract Amount -->
+                                    <div>
+                                        <label for="contract-amount" class="block text-sm font-medium text-gray-700">Amount</label>
+                                        <div class="mt-1 relative rounded-md shadow-sm">
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <span class="text-gray-500 sm:text-sm">$</span>
+                                            </div>
+                                            <input type="number" step="0.01" id="contract-amount" name="amount"
+                                                class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
+                                                placeholder="0.00">
+                                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                                <span class="text-gray-500 sm:text-sm" id="price-currency">USD</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Start Date -->
+                                    <div>
+                                        <label for="contract-start-date" class="block text-sm font-medium text-gray-700">Start Date</label>
+                                        <input type="date" id="contract-start-date" name="startDate"
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                    </div>
+
+                                    <!-- End Date -->
+                                    <div>
+                                        <label for="contract-end-date" class="block text-sm font-medium text-gray-700">End Date</label>
+                                        <input type="date" id="contract-end-date" name="endDate"
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                    </div>
+
+                                    <!-- Contract File -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">
+                                            Contract File *
+                                        </label>
+                                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                                            <div class="space-y-1 text-center">
+                                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                                </svg>
+                                                <div class="flex text-sm text-gray-600">
+                                                    <label for="contract-file" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                                        <span>Upload a file</span>
+                                                        <input id="contract-file" name="file" type="file" class="sr-only" accept=".pdf,.doc,.docx,.xls,.xlsx" required>
+                                                    </label>
+                                                    <p class="pl-1">or drag and drop</p>
+                                                </div>
+                                                <p class="text-xs text-gray-500">
+                                                    PDF, DOC, DOCX, XLS, XLSX up to 10MB
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div id="file-name" class="mt-1 text-sm text-gray-500"></div>
+                                    </div>
+
+                                    <!-- Additional Notes -->
+                                    <div>
+                                        <label for="contract-notes" class="block text-sm font-medium text-gray-700">Notes</label>
+                                        <textarea id="contract-notes" name="notes" rows="3"
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            placeholder="Any additional notes about this contract"></textarea>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" id="submit-contract-btn"
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        <span id="submit-contract-text">Upload Contract</span>
+                        <span id="submit-contract-loading" class="hidden">
+                            <i class="fas fa-spinner fa-spin ml-2"></i>
+                        </span>
+                    </button>
+                    <button type="button" id="cancel-upload-contract-btn"
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Two-Step Delete Confirmation Modal -->
+    <div id="delete-confirm-modal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+        
+        <!-- Modal wrapper -->
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- This element is to trick the browser into centering the modal contents. -->
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <!-- Modal panel -->
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full relative">
+                <!-- Step 1: Initial Confirmation -->
+                <div id="delete-step-1">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <i class="fas fa-exclamation-triangle text-red-600"></i>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                    Delete Contract
+                                </h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-gray-500">
+                                        Are you sure you want to delete this contract? This action cannot be undone.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="button" id="confirm-delete-btn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                            Delete Contract
+                        </button>
+                        <button type="button" id="cancel-delete-btn" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Step 2: Type Confirmation -->
+                <div id="delete-step-2" class="hidden">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                    Confirm Deletion
+                                </h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-gray-500">
+                                        Type <span class="font-mono font-bold">DELETE</span> to confirm you want to permanently delete this contract.
+                                    </p>
+                                    <input type="text" id="delete-confirmation-input" class="mt-3 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Type DELETE to confirm">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="button" id="final-delete-btn" disabled class="w-full inline-flex justify-center items-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="hidden" id="delete-loading-spinner">
+                                <i class="fas fa-spinner fa-spin mr-2"></i>
+                            </span>
+                            <span>Permanently Delete</span>
+                        </button>
+                        <button type="button" id="back-to-step-1" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                            Back
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Contract Details Modal -->
+    <div id="contract-details-modal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="contract-details-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+
+            <!-- Modal panel -->
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <i class="fas fa-file-contract text-blue-600"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <div class="flex justify-between items-start">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="contract-details-title">
+                                    Contract Details
+                                </h3>
+                                <button type="button" onclick="Contracts.hideContractDetails()" class="text-gray-400 hover:text-gray-500">
+                                    <span class="sr-only">Close</span>
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="mt-4 space-y-6">
+                                <!-- Contract Header -->
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <h4 class="text-lg font-medium text-gray-900" id="contract-details-title-text"></h4>
+                                            <div class="mt-1 flex flex-wrap items-center gap-2">
+                                                <span id="contract-status-badge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
+                                                    <span id="contract-status-icon" class="mr-1.5"></span>
+                                                    <span id="contract-status-text"></span>
+                                                </span>
+                                                <span class="text-sm text-gray-500" id="contract-id"></span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2 sm:mt-0 text-sm text-gray-500" id="contract-dates"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Contract Details Grid -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <!-- Client Information -->
+                                    <div class="space-y-4">
+                                        <div>
+                                            <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Client</h4>
+                                            <div class="mt-1" id="contract-client-info"></div>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Amount</h4>
+                                            <div class="mt-1" id="contract-amount"></div>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Start Date</h4>
+                                            <div class="mt-1" id="contract-start-date"></div>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider">End Date</h4>
+                                            <div class="mt-1" id="contract-end-date"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Contract Metadata -->
+                                    <div class="space-y-4">
+                                        <div>
+                                            <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Description</h4>
+                                            <div class="mt-1 text-gray-700" id="contract-description"></div>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Terms</h4>
+                                            <div class="mt-1 text-gray-700" id="contract-terms"></div>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider">File</h4>
+                                            <div class="mt-1" id="contract-file-link"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Contract Timeline -->
+                                <div class="border-t border-gray-200 pt-4">
+                                    <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Timeline</h4>
+                                    <div class="flow-root">
+                                        <ul id="contract-timeline" class="space-y-4">
+                                            <!-- Timeline items will be inserted here -->
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" id="download-contract-btn"
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        <i class="fas fa-download mr-2"></i> Download Contract
+                    </button>
+                    <button type="button" onclick="Contracts.hideContractDetails()"
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Delete Loading State (moved inside modal) -->
 </body>
 </html>

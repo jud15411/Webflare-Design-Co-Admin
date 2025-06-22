@@ -1,0 +1,99 @@
+# Set default behavior to automatically normalize line endings
+* text=auto eol=lf
+
+# Force Windows-style line endings for these files
+*.{cmd,[cC][mM][dD]} text eol=crlf
+*.{bat,[bB][aA][tT]} text eol=crlf
+
+# Force Unix-style line endings for shell scripts
+*.sh text eol=lf
+
+# Binary files that should not be modified
+*.{png,jpg,jpeg,gif,ico,svg,woff,woff2,ttf,eot,otf} binary
+*.{pdf,zip,rar,tar,gz,7z,exe,dll,pdb} binary
+
+# Files that should keep CRLF line endings on checkout
+*.sln text eol=crlf
+*.vcxproj* text eol=crlf
+*.vcxitems* text eol=crlf
+*.filters text eol=crlf
+*.user text eol=crlf
+*.userosscache text eol=crlf
+*.sln.docstates text eol=crlf
+*.pfx text eol=crlf
+*.pfx.snk text eol=crlf
+*.ruleset text eol=crlf
+*.DotSettings text eol=crlf
+*.DotSettings.user text eol=crlf
+
+# Files that should keep LF line endings on checkout
+*.sh text eol=lf
+*.ps1 text eol=lf
+*.psm1 text eol=lf
+*.psd1 text eol=lf
+*.ps1xml text eol=lf
+*.nuspec text eol=lf
+*.nupkg binary
+*.nupkg.sha512 text eol=lf
+*.nuspec text eol=lf
+*.targets text eol=lf
+*.props text eol=lf
+*.props.txt text eol=lf
+*.targets.txt text eol=lf
+*.template text eol=lf
+*.md text eol=lf
+*.md.textile text eol=lf
+*.markdown text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.json5 text eol=lf
+*.jsonc text eol=lf
+*.xml text eol=lf
+*.xaml text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.sass text eol=lf
+*.less text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.vue text eol=lf
+*.graphql text eol=lf
+*.gql text eol=lf
+*.sql text eol=lf
+*.php text eol=lf
+*.py text eol=lf
+*.rb text eol=lf
+*.java text eol=lf
+*.c text eol=lf
+*.h text eol=lf
+*.cpp text eol=lf
+*.hpp text eol=lf
+*.cs text eol=lf
+*.vb text eol=lf
+*.fs text eol=lf
+*.go text eol=lf
+*.rs text eol=lf
+*.swift text eol=lf
+*.kt text eol=lf
+*.kts text eol=lf
+*.gradle text eol=lf
+*.iml text eol=lf
+*.podspec text eol=lf
+*.plist text eol=lf
+*.strings text eol=lf
+*.storyboard text eol=lf
+*.xib text eol=lf
+*.pbxproj text eol=lf
+*.xcworkspacedata text eol=lf
+*.xcscheme text eol=lf
+*.xcsettings text eol=lf
+*.xcconfig text eol=lf
+*.xcuserstate text eol=lf
+*.xcworkspacedata text eol=lf
+*.xcscheme text eol=lf
+*.xcsettings text eol=lf
+*.xcconfig text eol=lf
+*.xcuserstate text eol=lf

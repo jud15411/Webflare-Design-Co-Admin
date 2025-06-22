@@ -1,10 +1,22 @@
 // AWS S3 Configuration from environment variables
+const getEnvVar = (key, defaultValue = '') => {
+    if (typeof window !== 'undefined' && window.env && window.env[key] !== undefined) {
+        return window.env[key];
+    }
+    if (typeof process !== 'undefined' && process.env && process.env[key] !== undefined) {
+        return process.env[key];
+    }
+    return defaultValue;
+};
+
 const awsConfig = {
-    region: window.env?.AWS_REGION || 'us-east-2',
-    accessKeyId: window.env?.AWS_ACCESS_KEY_ID,
-    secretAccessKey: window.env?.AWS_SECRET_ACCESS_KEY,
-    bucketName: window.env?.AWS_S3_BUCKET || 'webflare-admin-contracts',
-    s3Url: `https://${window.env?.AWS_S3_BUCKET || 'webflare-admin-contracts'}.s3.${window.env?.AWS_REGION || 'us-east-2'}.amazonaws.com`
+    region: getEnvVar('AWS_REGION', 'us-east-2'),
+    accessKeyId: getEnvVar('AWS_ACCESS_KEY_ID'),
+    secretAccessKey: getEnvVar('AWS_SECRET_ACCESS_KEY'),
+    bucketName: getEnvVar('AWS_S3_BUCKET', 'webflare-admin-contracts'),
+    get s3Url() {
+        return `https://${this.bucketName}.s3.${this.region}.amazonaws.com`;
+    }
 };
 
 // Validate required configuration
@@ -49,27 +61,80 @@ const s3 = new AWS.S3({
 
 // Function to upload file to S3
 async function uploadFileToS3(file, filePath) {
-    return new Promise((resolve, reject) => {
-        const params = {
-            Key: filePath,
-            Body: file,
-            ContentType: file.type || 'application/octet-stream',
-            // Removed ACL to use bucket policy instead
-            CacheControl: 'max-age=31536000', // Cache for 1 year
-            ContentDisposition: 'inline', // Try to display in browser
-            // Enable server-side encryption (recommended)
-            ServerSideEncryption: 'AES256'
-        };
+    console.log('Starting file upload...', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        filePath: filePath
+    });
 
-        s3.upload(params, (err, data) => {
-            if (err) {
-                console.error('Error uploading file to S3:', err);
-                reject(err);
-            } else {
-                console.log('File uploaded successfully:', data.Location);
-                resolve(data);
-            }
-        });
+    return new Promise((resolve, reject) => {
+        try {
+            const params = {
+                Bucket: awsConfig.bucketName,
+                Key: filePath,
+                Body: file,
+                ContentType: file.type || 'application/octet-stream',
+                CacheControl: 'max-age=31536000',
+                ContentDisposition: 'inline',
+                ServerSideEncryption: 'AES256',
+                Metadata: {
+                    'original-filename': file.name
+                }
+            };
+
+            console.log('Uploading with params:', {
+                Bucket: params.Bucket,
+                Key: params.Key,
+                ContentType: params.ContentType,
+                Size: file.size
+            });
+
+            const uploader = s3.upload(params);
+            
+            // Track upload progress
+            uploader.on('httpUploadProgress', (progress) => {
+                const percent = Math.round((progress.loaded / progress.total) * 100);
+                console.log(`Upload progress: ${percent}%`);
+            });
+
+            uploader.send((err, data) => {
+                if (err) {
+                    console.error('Error details:', {
+                        code: err.code,
+                        statusCode: err.statusCode,
+                        message: err.message,
+                        region: err.region,
+                        time: new Date().toISOString(),
+                        requestId: err.requestId,
+                        extendedRequestId: err.extendedRequestId
+                    });
+                    
+                    // Provide more user-friendly error messages
+                    let errorMessage = 'Upload failed';
+                    if (err.code === 'AccessDenied') {
+                        errorMessage = 'Permission denied. Check your AWS credentials and bucket policy.';
+                    } else if (err.code === 'NoSuchBucket') {
+                        errorMessage = `Bucket ${awsConfig.bucketName} does not exist.`;
+                    } else if (err.statusCode === 403) {
+                        errorMessage = 'Access forbidden. Check your bucket policy and CORS configuration.';
+                    }
+                    
+                    reject(new Error(`${errorMessage} (${err.code || 'Unknown error'})`));
+                } else {
+                    console.log('Upload successful:', {
+                        location: data.Location,
+                        key: data.Key,
+                        etag: data.ETag,
+                        bucket: data.Bucket
+                    });
+                    resolve(data);
+                }
+            });
+        } catch (error) {
+            console.error('Unexpected error in uploadFileToS3:', error);
+            reject(new Error(`Upload failed: ${error.message}`));
+        }
     });
 }
 
@@ -114,9 +179,17 @@ async function deleteFileFromS3(fileKey) {
 }
 
 // Export the functions
-window.AWSUtils = {
+const AWSUtils = {
     uploadFile: uploadFileToS3,
     getSignedUrl: getSignedUrl,
     deleteFile: deleteFileFromS3,
     config: awsConfig
 };
+
+// Make available globally
+window.AWSUtils = AWSUtils;
+
+// Export for ES modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = AWSUtils;
+}
