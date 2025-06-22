@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "generate:firebase-config": "node scripts/generate-firebase-config.js",
+    "prebuild": "npm run generate:firebase-config",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx --ignore-path .gitignore --fix",

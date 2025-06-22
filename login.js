@@ -15,7 +15,8 @@ window.Login = window.Login || {
                     return false;
                 }
                 
-                const firebaseConfig = {
+                // Use window.firebaseConfig if available, otherwise fall back to window.config
+                const firebaseConfig = window.firebaseConfig || {
                     apiKey: window.config.FIREBASE_API_KEY,
                     authDomain: window.config.FIREBASE_AUTH_DOMAIN,
                     projectId: window.config.FIREBASE_PROJECT_ID,

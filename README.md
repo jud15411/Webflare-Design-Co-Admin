@@ -9,14 +9,60 @@ A secure admin panel for managing Webflare Design Co. resources, built with Fire
 - 📱 Responsive design for all devices
 - ⚡ Optimized for performance
 - 🔒 Security best practices
-- 📊 Analytics integration
+- 📊 Analytics
 
-## 🛠️ Prerequisites
+## 🚀 Getting Started
+
+### Prerequisites
 
 - Node.js 16+ and npm 8+
 - Firebase CLI (`npm install -g firebase-tools`)
 - A Firebase project with Firestore and Authentication enabled
 - (Optional) AWS account for S3 storage
+
+### Firebase Configuration
+
+1. Create a `.env.local` file in the root directory with your Firebase configuration:
+   ```bash
+   cp env.template .env.local
+   ```
+
+2. Edit `.env.local` and add your Firebase project details:
+   ```
+   VITE_FIREBASE_API_KEY=your_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
+   VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+   ```
+
+3. The Firebase configuration will be automatically generated in `public/firebase-config.js` during the build process.
+
+### Development
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+3. For production build:
+   ```bash
+   npm run build
+   firebase deploy
+   ```
+
+### Environment Variables
+
+- The app uses environment variables from `.env.local` (not committed to version control)
+- A template file `env.template` is provided as a reference
+- The Firebase config is generated during build and served as a static file
 
 ## 🚀 Quick Start
 

@@ -16,6 +16,7 @@ aws-credentials.json
 .firebaserc
 firebase-debug.log
 firebase-debug.*.log
+public/firebase-config.js
 firebase-export-*.json
 firestore-debug.log
 firestore-debug.*.log
